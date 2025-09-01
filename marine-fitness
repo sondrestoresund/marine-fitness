@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Marine Civilian Fitness – Mission Benchmarks</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Roboto+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+  :root{
+    --bg:#0b1620; --bg2:#101922; --card:#161b23; --ink:#e7ecf4; --muted:#95a1b1; --grid:rgba(231,236,244,.08);
+    --accent:#2db9a2; --cta:#f95e2d; --chip:rgba(255,255,255,.06); --ring:rgba(45,185,162,.35);
+    --prospect:#6fc2d0; --std:#79c389; --strong:#f3c355; --elite:#6aa9ff; --max:#ff6aa9;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; color:var(--ink);
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+    background:
+      radial-gradient(1200px 700px at 75% -10%, rgba(45,185,162,.10), transparent 50%),
+      linear-gradient(180deg, var(--bg2), var(--bg)),
+      repeating-linear-gradient(135deg, rgba(255,255,255,.015) 0 2px, transparent 2px 6px);
+  }
+  header{padding:28px 16px 8px; text-align:center}
+  .title{margin:0; font-family:"Roboto Condensed"; font-size:28px; letter-spacing:.5px; text-transform:uppercase}
+  .subtitle{margin:6px 0 0; color:var(--muted); font-size:14px}
+
+  /* Auth (simple local) */
+  .authbar{max-width:1200px;margin:8px auto 0;padding:0 16px;display:flex;justify-content:flex-end;gap:10px;align-items:center}
+  .authbar button{width:auto;padding:8px 12px;border-radius:8px;border:1px solid var(--grid);background:#0e1620;color:var(--ink);cursor:pointer}
+  .authbar .btn-primary{background:linear-gradient(135deg, var(--cta), #ff7a52);color:#150d0a;border:none;font-weight:800}
+  .status{color:var(--muted);font-size:13px}
+
+  /* Modal base */
+  #authModal, #levelsModal, #testModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);align-items:center;justify-content:center;z-index:9999}
+  .modal-card, .test-card{
+    background:var(--card); border:1px solid var(--grid); border-radius:14px; padding:16px; box-shadow:0 12px 40px rgba(0,0,0,.35)
+  }
+  .modal-card{width:360px}
+  .modal-card h3, .test-card h3{margin:0 0 10px;font:700 18px "Roboto Condensed";text-transform:uppercase}
+  .modal-card label{display:block;color:var(--muted);font-size:12px;margin:6px 0}
+  .modal-card input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--grid);background:#0f1620;color:var(--ink)}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+  .error{color:var(--max);font-size:12px;margin-top:8px}
+
+  .wrap{max-width:1200px;margin:16px auto 56px;padding:0 16px;display:grid;gap:16px;grid-template-columns:380px 1fr}
+  @media (max-width:1024px){.wrap{grid-template-columns:1fr}}
+
+  .panel{background:var(--card);border:1px solid var(--grid);border-radius:14px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  .panel h2{margin:0 0 12px;font:700 18px "Roboto Condensed";letter-spacing:.4px;text-transform:uppercase;position:relative}
+  .panel h2:after{content:"";position:absolute;left:0;bottom:-6px;width:100%;height:2px;
+    background:repeating-linear-gradient(90deg,rgba(231,236,244,.15) 0 24px, transparent 24px 36px)}
+
+  .grid{display:grid;gap:10px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr 1fr}
+
+  label{display:block;font-size:12px;color:var(--muted);margin:6px 0}
+  input,select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--grid);background:#0f1620;color:var(--ink);font-size:14px}
+  .btn{background:linear-gradient(135deg,var(--accent),#35e0c2);color:#0a1412;border:none;cursor:pointer;font-weight:800;letter-spacing:.3px}
+  .btn:active{transform:translateY(1px)} .btn:hover{filter:brightness(1.05);box-shadow:0 0 0 4px var(--ring)}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .badge{font:700 11px "Roboto Condensed";text-transform:uppercase;letter-spacing:.4px;padding:4px 10px;border-radius:6px;background:var(--chip);display:inline-block}
+  .b-prospect{background:color-mix(in srgb, var(--prospect) 22%, transparent);color:#062027}
+  .b-std{background:color-mix(in srgb, var(--std) 22%, transparent);color:#04170b}
+  .b-strong{background:color-mix(in srgb, var(--strong) 22%, transparent);color:#2b1f00}
+  .b-elite{background:color-mix(in srgb, var(--elite) 22%, transparent);color:#001733}
+  .b-max{background:color-mix(in srgb, var(--max) 22%, transparent);color:#2a0012}
+
+  .score{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+  .score > div{background:var(--chip);border:1px solid var(--grid);border-radius:12px;padding:12px}
+  .score h3{margin:0 0 6px;font:700 12px "Roboto Condensed";color:var(--muted);text-transform:uppercase}
+  .score p{margin:0;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+
+  /* HUD Rings */
+  .hud{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+  .ring{display:flex;gap:12px;align-items:center;background:var(--chip);border:1px solid var(--grid);border-radius:12px;padding:10px}
+  .ring .dial{--pct:0;--clr:var(--accent);width:64px;height:64px;border-radius:50%;
+    background:conic-gradient(var(--clr) calc(var(--pct)*1%), rgba(255,255,255,0.08) 0);
+    position:relative}
+  .ring .dial::after{content:"";position:absolute;inset:6px;border-radius:50%;background:#0f1620;border:1px solid var(--grid)}
+  .ring .meta{display:flex;flex-direction:column}
+  .ring .big{font:800 20px/1 Inter}
+  .ring .lbl{font:700 12px "Roboto Condensed";text-transform:uppercase;color:var(--muted)}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse}
+  th,td{border-bottom:1px solid var(--grid);padding:10px;text-align:left;font-size:14px;vertical-align:top}
+  th{color:var(--muted);font:700 12px "Roboto Condensed";letter-spacing:.3px;text-transform:uppercase}
+  td small{color:var(--muted)}
+  .tag{font-size:11px;padding:2px 8px;border-radius:6px;background:var(--chip)}
+  .t-prospect{background:var(--prospect);color:#052027}
+  .t-std{background:var(--std);color:#06210f}
+  .t-strong{background:var(--strong);color:#3b2900}
+  .t-elite{background:var(--elite);color:#001533}
+  .t-max{background:var(--max);color:#3a001a}
+  .rowbtn{width:auto;padding:8px 10px;border-radius:8px;border:1px solid var(--grid);background:#0e1620;color:var(--ink);cursor:pointer}
+  .rowbtn:hover{border-color:var(--accent)}
+  canvas{background:#0f1620;border-radius:12px;border:1px solid var(--grid)}
+
+  /* Test Day modal */
+  .test-card{width:min(860px,95vw);max-height:85vh;overflow:auto}
+
+  /* Tiny tooltip */
+  .tip{ position:relative; cursor:help; display:inline-flex; align-items:center; gap:4px }
+  .tip::after{
+    content: attr(data-tip);
+    position:absolute; left:50%; bottom:125%; transform:translateX(-50%);
+    background:#0f1620; color:#e7ecf4; border:1px solid rgba(231,236,244,.14);
+    padding:8px 10px; border-radius:8px; font-size:12px; line-height:1.3; white-space:nowrap;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+    opacity:0; pointer-events:none; transition:opacity .15s ease; z-index:50;
+  }
+  .tip:hover::after{ opacity:1 }
+  @media (hover:none){ .tip::after{ display:none } } /* mobile uses modal */
+
+  /* First-run toast */
+  #levelsToast{display:none;position:fixed;left:16px;bottom:16px;background:#161b23;border:1px solid rgba(231,236,244,.12);border-radius:10px;padding:12px 14px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+<header>
+  <h1 class="title">Mission Benchmarks</h1>
+  <p class="subtitle">A Marine-grade fitness gauntlet designed with world-class polish. Train. Log. Improve.</p>
+</header>
+
+<div class="authbar">
+  <span id="authStatus" class="status">Not signed in</span>
+  <button id="btnSignIn">Sign in</button>
+  <button id="btnCreate" class="btn-primary">Create account</button>
+  <button id="btnSignOut" style="display:none">Sign out</button>
+</div>
+
+<!-- Auth Modal -->
+<div id="authModal">
+  <div class="modal-card">
+    <h3 id="authTitle">Create account</h3>
+    <div id="nameRow">
+      <label>Name</label><input id="authName" type="text" placeholder="Your name" />
+    </div>
+    <label>Email</label><input id="authEmail" type="email" placeholder="you@example.com" />
+    <label>Password</label><input id="authPass" type="password" placeholder="••••••••" />
+    <div class="modal-actions"><button id="authCancel">Cancel</button><button id="authSubmit" class="btn">Submit</button></div>
+    <div id="authError" class="error"></div>
+  </div>
+</div>
+
+<!-- Levels Modal -->
+<div id="levelsModal">
+  <div class="test-card">
+    <h3>Levels – How to read your targets</h3>
+    <p class="muted">These tiers balance Marine-inspired standards with civilian practicality. Scoring uses 5 bands so progress is visible between big milestones.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+      <div class="panel" style="padding:12px">
+        <div class="badge b-prospect">Prospect</div>
+        <p class="muted" style="margin:8px 0 0">Entry-ready fitness. About 20–25% easier than Standard to build consistency.</p>
+      </div>
+      <div class="panel" style="padding:12px">
+        <div class="badge b-std">Standard</div>
+        <p class="muted" style="margin:8px 0 0">Baseline pass threshold aligned to Marine test anchors where applicable.</p>
+      </div>
+      <div class="panel" style="padding:12px">
+        <div class="badge b-strong">Strong</div>
+        <p class="muted" style="margin:8px 0 0">Above-standard performance. Competitive for most fit civilians.</p>
+      </div>
+      <div class="panel" style="padding:12px">
+        <div class="badge b-elite">Elite</div>
+        <p class="muted" style="margin:8px 0 0">Top few percent. Comparable to well-trained military/athlete benchmarks.</p>
+      </div>
+      <div class="panel" style="padding:12px">
+        <div class="badge b-max">Max</div>
+        <p class="muted" style="margin:8px 0 0">Max-out targets anchored to age/sex caps or best-practice ceilings.</p>
+      </div>
+    </div>
+    <h3 style="margin-top:14px">How scoring works</h3>
+    <ul class="muted" style="margin-top:6px;line-height:1.5">
+      <li>Prospect ≈ 20 points, Standard ≈ 40, Strong ≈ 70, Elite ≈ 90, Max = 100.</li>
+      <li>Between tiers we interpolate smoothly so every rep/second counts.</li>
+      <li>“Higher is better” (reps, distance, weight) vs “Lower is better” (times) are handled separately.</li>
+    </ul>
+    <div class="modal-actions" style="margin-top:12px"><button id="levelsClose">Close</button></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- Left: Controls -->
+  <section class="panel">
+    <h2>Profile</h2>
+    <div class="grid grid-3">
+      <div>
+        <label>Sex</label>
+        <select id="sex"><option value="male" selected>Male</option><option value="female">Female</option></select>
+      </div>
+      <div>
+        <label>Age Bracket</label>
+        <select id="age">
+          <option>17-26</option><option>27-30</option><option selected>31-35</option><option>36-40</option><option>41-45</option>
+          <option>46-50</option><option>51-55</option><option>56-60</option><option>61-65</option><option>66-70</option>
+        </select>
+      </div>
+      <div>
+        <label>Units</label>
+        <select id="unitGlobal"><option value="lb" selected>lb</option><option value="kg">kg</option></select>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:10px">
+      <div>
+        <label>Bodyweight</label>
+        <div class="grid grid-2">
+          <input id="bw" type="number" step="0.1" placeholder="e.g. 180" />
+          <select id="bwUnit"><option value="lb" selected>lb</option><option value="kg">kg</option></select>
+        </div>
+      </div>
+      <div>
+        <label>Preferred DB weight per hand (optional)</label>
+        <div class="grid grid-2">
+          <input id="db" type="number" step="1" placeholder="e.g. 80" />
+          <select id="dbUnit"><option value="lb" selected>lb</option><option value="kg">kg</option></select>
+        </div>
+        <div class="muted">Sets your DB press rep targets. Leave blank for auto.</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn" id="calcBtn">Recalculate Targets</button>
+      <button id="btnTestDay" class="btn" title="Record all filled entries as a single session">Record Test Day</button>
+      <button id="exportBtn">Export Logs (JSON)</button>
+      <input id="importFile" type="file" accept="application/json" />
+    </div>
+
+    <!-- Legend with tooltips and Levels button -->
+    <div class="legend">
+      <span class="badge b-prospect tip" data-tip="Entry-ready: ~20–25% easier than Standard.">Prospect</span>
+      <span class="badge b-std tip" data-tip="Baseline pass target.">Standard</span>
+      <span class="badge b-strong tip" data-tip="Above-standard civilian performance.">Strong</span>
+      <span class="badge b-elite tip" data-tip="Top-level, highly trained.">Elite</span>
+      <span class="badge b-max tip" data-tip="Max-out / cap.">Max</span>
+      <button id="btnLevels" class="rowbtn" title="Full definitions">Levels (i)</button>
+    </div>
+
+    <!-- HUD Rings -->
+    <div class="hud">
+      <div class="ring">
+        <div class="dial" id="ringOverall" style="--pct:0;--clr:#2db9a2"></div>
+        <div class="meta"><div class="lbl">Overall</div><div class="big" id="overall">-</div></div>
+      </div>
+      <div class="ring">
+        <div class="dial" id="ringPFT" style="--pct:0;--clr:#6aa9ff"></div>
+        <div class="meta"><div class="lbl">PFT</div><div class="big" id="pft">-</div></div>
+      </div>
+      <div class="ring">
+        <div class="dial" id="ringCFT" style="--pct:0;--clr:#f3c355"></div>
+        <div class="meta"><div class="lbl">CFT</div><div class="big" id="cft">-</div></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:12px">
+      <h2>Progress Dashboard</h2>
+      <div class="grid grid-3">
+        <div>
+          <label>Exercise</label>
+          <select id="chartExercise"></select>
+        </div>
+        <div>
+          <label>Unit</label>
+          <input id="chartUnit" disabled />
+        </div>
+        <div class="right">
+          <button id="clearExercise" class="rowbtn">Clear Selected Logs</button>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <canvas id="chart" height="200"></canvas>
+      </div>
+    </div>
+
+    <p class="muted" style="margin-top:10px">Anchored to USMC standards where applicable. Scaling remains challenging at every age bracket.</p>
+  </section>
+
+  <!-- Right: Table -->
+  <section class="panel">
+    <h2>Mission Benchmarks & Attempts</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th><th>Exercise</th>
+          <th>Prospect</th><th>Standard</th><th>Strong</th><th>Elite</th><th>Max</th>
+          <th>Your Entry</th>
+          <th>Tier <span class="tip" data-tip="Your current band for this exercise. Click Levels for full definitions.">(i)</span></th>
+          <th>Pts</th><th>PR</th><th>Record Attempt</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </section>
+</div>
+
+<!-- Test Day Modal -->
+<div id="testModal">
+  <div class="test-card">
+    <h3>Test Day Summary</h3>
+    <div class="test-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div id="testStats" class="muted"></div>
+        <div class="modal-actions" style="justify-content:flex-start">
+          <button id="btnCopyLink" class="btn">Copy Share Link</button>
+          <button id="btnPrint" class="rowbtn">Print</button>
+        </div>
+      </div>
+      <div>
+        <canvas id="testChart" height="180"></canvas>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr>
+            <th style="text-align:left;border-bottom:1px solid var(--grid);padding:6px;color:var(--muted);font:700 12px 'Roboto Condensed'">Exercise</th>
+            <th style="text-align:left;border-bottom:1px solid var(--grid);padding:6px;color:var(--muted);font:700 12px 'Roboto Condensed'">Result</th>
+            <th style="text-align:left;border-bottom:1px solid var(--grid);padding:6px;color:var(--muted);font:700 12px 'Roboto Condensed'">Tier</th>
+            <th style="text-align:left;border-bottom:1px solid var(--grid);padding:6px;color:var(--muted);font:700 12px 'Roboto Condensed'">Pts</th>
+          </tr>
+        </thead>
+        <tbody id="testTbody"></tbody>
+      </table>
+    </div>
+    <div class="modal-actions" style="margin-top:12px"><button id="testClose">Close</button></div>
+  </div>
+</div>
+
+<!-- First-run Levels Toast -->
+<div id="levelsToast">
+  <div style="font:700 12px 'Roboto Condensed';letter-spacing:.3px;text-transform:uppercase;color:#95a1b1">New here?</div>
+  <div style="margin-top:4px">Wondering what each level means? <a href="#" id="levelsOpenLink" style="color:#2db9a2;text-decoration:none">See Levels</a></div>
+  <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">
+    <button id="levelsDismiss" class="rowbtn" style="padding:6px 10px">Dismiss</button>
+  </div>
+</div>
+
+<script>
+/* ---------------- Utils ---------------- */
+const $ = s => document.querySelector(s);
+const secs = (m,s)=>m*60+s;
+const lbToKg = lb => lb/2.20462;
+const kgToLb = kg => kg*2.20462;
+const fmtSecs = v => { const m=Math.floor(v/60), s=Math.round(v%60); return `${m}:${String(s).padStart(2,'0')}`; };
+function parseTimeInput(str){
+  if(str==null || str==="") return NaN;
+  if(String(str).includes(":")){
+    const [m,s]=String(str).split(":"); const mm=parseInt(m,10), ss=parseInt(s,10);
+    if(isNaN(mm)||isNaN(ss)) return NaN; return mm*60+ss;
+  }
+  const n=parseFloat(str); return isNaN(n)? NaN : n;
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+/* ---------------- Age-aware anchors ---------------- */
+function ageBracketIndex(age){ return ["17-26","27-30","31-35","36-40","41-45","46-50","51-55","56-60","61-65","66-70"].indexOf(age); }
+function malePullupMax(age){ return [23,22,20,18,16,14,12,10,8,6][ageBracketIndex(age)]; }
+function femalePullupMax(age){ return [12,12,10,9,8,7,6,5,4,3][ageBracketIndex(age)]; }
+function plankMaxByAge(age){ return [secs(4,20),secs(4,0),secs(3,45),secs(3,30),secs(3,15),secs(3,0),secs(2,50),secs(2,40),secs(2,30),secs(2,20)][ageBracketIndex(age)]; }
+function threeMileMaxByAge(sex, age){
+  const male=[secs(18,0),secs(18,5),secs(18,10),secs(18,40),secs(19,20),secs(20,0),secs(20,40),secs(21,20),secs(22,0),secs(23,0)];
+  const female=[secs(21,0),secs(21,10),secs(21,20),secs(22,0),secs(22,40),secs(23,30),secs(24,20),secs(25,20),secs(26,30),secs(27,30)];
+  return (sex==='female'? female : male)[ageBracketIndex(age)];
+}
+function threeMileStandardByAge(sex, age){
+  const male=[secs(27,40),secs(28,0),secs(28,20),secs(29,0),secs(29,40),secs(30,30),secs(31,20),secs(32,10),secs(33,0),secs(34,0)];
+  const female=[secs(30,50),secs(31,20),secs(32,0),secs(32,40),secs(33,30),secs(34,20),secs(35,10),secs(36,0),secs(37,0),secs(38,0)];
+  return (sex==='female'? female: male)[ageBracketIndex(age)];
+}
+
+/* ---------------- Persistence (per-user) ---------------- */
+const USERS_KEY="mcfit:users", SESSION_KEY="mcfit:session", DATA_PREFIX="mcfit:data:";
+function loadUsers(){ try{return JSON.parse(localStorage.getItem(USERS_KEY)||"{}")}catch{return{}} }
+function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)) }
+function getSession(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null")}catch{return null} }
+function setSession(s){ localStorage.setItem(SESSION_KEY, JSON.stringify(s)) }
+function dataKeyFor(uid){ return DATA_PREFIX + (uid || "guest") }
+function loadUserData(uid){ try{return JSON.parse(localStorage.getItem(dataKeyFor(uid))||'{"profile":{},"logs":[]}')}catch{return{profile:{},logs:[]}} }
+function saveUserData(uid,data){ localStorage.setItem(dataKeyFor(uid), JSON.stringify(data)) }
+function dedupeLogs(logs){ const seen=new Set(), out=[]; for(const l of logs){const k=`${l.exercise}|${l.date}|${l.value}`; if(!seen.has(k)){seen.add(k); out.push(l)}} return out }
+function activeUID(){ const s=getSession(); return s?.uid || null }
+let state = loadUserData(activeUID());
+
+/* ---------------- Model w/ Prospect tier ---------------- */
+function withProspect(row){
+  // Prospect ≈ 20–25% easier than Standard
+  const p = structuredClone(row);
+  if(p.unit==='sec'){ p.prospect = Math.round(p.std * 1.25); } // slower allowed
+  else { p.prospect = typeof p.std==="number" ? Math.max(1, Math.round(p.std*0.80)) : p.std*0.80; } // lower target
+  return p;
+}
+function buildModel(){
+  const sex=$("#sex").value, age=$("#age").value, unitGlobal=$("#unitGlobal").value;
+  const bwVal=parseFloat($("#bw").value||'0'), bwUnit=$("#bwUnit").value;
+  const dbVal=$("#db").value===""? null : parseFloat($("#db").value), dbUnit=$("#dbUnit").value;
+  const bwLb = bwUnit==='kg' ? kgToLb(bwVal) : bwVal;
+  const dbLb = dbVal==null? null : (dbUnit==='kg'? kgToLb(dbVal) : dbVal);
+
+  const pullMax = (sex==='male'? malePullupMax(age) : femalePullupMax(age));
+  const plankMAX= plankMaxByAge(age);
+  const run3Max = threeMileMaxByAge(sex, age);
+  const run3Std = threeMileStandardByAge(sex, age);
+  const fiveKMax = Math.round(run3Max*(5000/4828));
+  const fiveKStd = Math.round(run3Std*(5000/4828));
+
+  // Pull-ups tiers
+  const puStd = sex==='male' ? (ageBracketIndex(age)<=2?5:Math.max(2, Math.floor(pullMax/4))) : Math.max(1, Math.floor(pullMax/3));
+  const puStrong = Math.max(puStd+5, Math.round((pullMax+puStd)/2)-1);
+  const puElite = Math.max(puStrong+3, Math.min(pullMax-3, Math.round(pullMax*0.75)));
+  const puMax = pullMax;
+
+  // Push-ups
+  const pushStd = sex==='male'? 40 : 19, pushStrong=sex==='male'?60:35, pushElite=sex==='male'?80:50, pushMax=sex==='male'?100:60;
+
+  // Plank
+  const plankStd=70, plankStrong=120, plankElite=180, plankMax=plankMAX;
+
+  // 800m
+  const m880Std=secs(4,19), m880El=180, m880Mx=170, m880Str=Math.round((m880Std+m880El)/2);
+
+  // 1-mi & 10k
+  const oneMiStd = sex==='female'?510:450, oneMiStrong=sex==='female'?450:405, oneMiElite=sex==='female'?390:360, oneMiMax=sex==='female'?360:300;
+  const tenKStd = sex==='female'?3600:3300, tenKStrong=sex==='female'?3180:2880, tenKElite=sex==='female'?2820:2520, tenKMax=sex==='female'?2400:2100;
+  const fiveKStrong=Math.round((fiveKStd+fiveKMax)/2);
+
+  // SLJ
+  const sljStd=200, sljStrong=225, sljElite=250, sljMax=sex==='female'?260:300;
+
+  // Carry
+  const carryStd=50, carryStrong=75, carryElite=100, carryMax=200;
+
+  // Strength (xBW)
+  const dlStd=1.5, dlStr=1.75, dlEl=2.0, dlMx=2.5;
+  const sqStd=1.25, sqStr=1.5, sqEl=1.75, sqMx=2.0;
+  const bbStd=1.0, bbStr=1.25, bbEl=1.5, bbMx=1.75;
+
+  // DB suggestion (just for note)
+  const dbSuggestedLb = dbLb ?? Math.max(40, Math.round((bwLb*0.225)/5)*5);
+  const dbNote = (unitGlobal==='kg' ? `${Math.round(lbToKg(dbSuggestedLb))} kg` : `${Math.round(dbSuggestedLb)} lb`) + " per hand";
+
+  // Ammo can
+  const ammoStd=33, ammoStr=60, ammoEl=100, ammoMx=120;
+
+  const rows = [
+    withProspect(r("Upper Body","Pull-ups (strict, dead-hang)","reps","higher",puStd,puStrong,puElite,puMax,"Chin over bar, full lockout")),
+    withProspect(r("Upper Body","Push-ups (strict, nonstop)","reps","higher",pushStd,pushStrong,pushElite,pushMax,"Alternative to pull-ups")),
+    withProspect(r("Upper Body","Barbell Bench Press (xBW for 2–5 reps)","xBW","higher",bbStd,bbStr,bbEl,bbMx,"Enter the multiple you benched")),
+    withProspect(r("Upper Body",`Dumbbell Bench Press (${dbNote})`,"reps","higher",10,12,15,20,"AMRAP at chosen weight per hand")),
+    withProspect(r("Upper Body","Ammo Can Press (30 lb, 2 min)","reps","higher",ammoStd,ammoStr,ammoEl,ammoMx,"2-minute max reps")),
+
+    withProspect(r("Core","Plank Hold","sec","higher",plankStd,plankStrong,plankElite,plankMax,"Enter seconds")),
+
+    withProspect(r("Speed & Endurance","800 m Run","sec","lower",m880Std,m880Str,m880El,m880Mx,"Enter seconds")),
+    withProspect(r("Speed & Endurance","1-Mile Run","sec","lower",oneMiStd,oneMiStrong,oneMiElite,oneMiMax,"Enter seconds")),
+    withProspect(r("Speed & Endurance","5K Run","sec","lower",fiveKStd,fiveKStrong,fiveKMax,Math.min(1020,fiveKMax),"Enter seconds")),
+    withProspect(r("Speed & Endurance","3-Mile (anchor)","sec","lower",run3Std,Math.round((run3Std+run3Max)/2),run3Max,run3Max,"USMC anchor")),
+    withProspect(r("Speed & Endurance","10K Run","sec","lower",tenKStd,tenKStrong,tenKElite,tenKMax,"Enter seconds")),
+
+    withProspect(r("Explosive Power","Standing Long Jump","cm","higher",sljStd,sljStrong,sljElite,sljMax,"Two-foot takeoff")),
+
+    withProspect(r("Load & Work Capacity","Farmer’s Carry (2×50 lb DBs)","yd","higher",carryStd,carryStrong,carryElite,carryMax,"Unbroken distance")),
+    withProspect(r("Load & Work Capacity","Deadlift (xBW for 8 reps)","xBW","higher",dlStd,dlStr,dlEl,dlMx,"Enter xBW achieved")),
+    withProspect(r("Load & Work Capacity","Squat (xBW for 8 reps)","xBW","higher",sqStd,sqStr,sqEl,sqMx,"Enter xBW achieved")),
+  ];
+  return {sex,age,rows};
+}
+function r(cat,name,unit,dir,std,strong,elite,max,note){ return {cat,name,unit,dir,std,strong,elite,max,note}; }
+
+/* ---------------- 5-tier scoring ----------------
+   Prospect=20, Standard=40, Strong≈70, Elite≈90, Max=100  */
+function tierAndPoints5(dir,val,prospect,std,strong,elite,maxv){
+  if(val==null || isNaN(val)) return {tier:"-", pts:null};
+  let t="Below", p=0;
+  if(dir==='higher'){
+    if(val<prospect){ p=Math.max(0, 20*(val/prospect)); t="Below"; }
+    else if(val<std){ p=20 + (val - prospect)/(std - prospect) * 20; t="Prospect"; }
+    else if(val<strong){ p=40 + (val - std)/(strong - std) * 30; t="Standard"; }
+    else if(val<elite){ p=70 + (val - strong)/(elite - strong) * 20; t="Strong"; }
+    else if(val<maxv){ p=90 + (val - elite)/(maxv - elite) * 10; t="Elite"; }
+    else { p=100; t="Max"; }
+  } else {
+    if(val>prospect){ p=Math.max(0, 20*(prospect/val)); t="Below"; }
+    else if(val>std){ p=20 + (prospect - val)/(prospect - std) * 20; t="Prospect"; }
+    else if(val>strong){ p=40 + (std - val)/(std - strong) * 30; t="Standard"; }
+    else if(val>elite){ p=70 + (strong - val)/(strong - elite) * 20; t="Strong"; }
+    else if(val>maxv){ p=90 + (elite - val)/(elite - maxv) * 10; t="Elite"; }
+    else { p=100; t="Max"; }
+  }
+  return {tier:t, pts:Math.round(p)};
+}
+
+/* ---------------- Rendering ---------------- */
+let modelData, CHART;
+const TBL=$("#tbody");
+
+function fmtTarget(row,val){ if(row.unit==='sec') return fmtSecs(val); if(row.unit==='xBW') return val.toFixed(2); return String(val); }
+function exerciseKey(row){ return `${row.cat}|${row.name}|${row.unit}|${row.dir}`; }
+function tierClass(t){ return t==="Max"?"t-max":t==="Elite"?"t-elite":t==="Strong"?"t-strong":t==="Standard"?"t-std":t==="Prospect"?"t-prospect":""; }
+
+function renderTable(){
+  const m=buildModel(); modelData=m; TBL.innerHTML="";
+  const exSel=$("#chartExercise"); exSel.innerHTML="";
+
+  m.rows.forEach(row=>{
+    const opt=document.createElement("option");
+    opt.value=exerciseKey(row); opt.textContent=`${row.cat} — ${row.name}`; exSel.appendChild(opt);
+  });
+  $("#chartUnit").value=m.rows[0]?.unit || "";
+
+  m.rows.forEach((row,idx)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${row.cat}</td>
+      <td>${row.name}<br><small>${row.note||""}</small></td>
+      <td><span class="badge b-prospect">${fmtTarget(row,row.prospect)}</span></td>
+      <td><span class="badge b-std">${fmtTarget(row,row.std)}</span></td>
+      <td><span class="badge b-strong">${fmtTarget(row,row.strong)}</span></td>
+      <td><span class="badge b-elite">${fmtTarget(row,row.elite)}</span></td>
+      <td><span class="badge b-max">${fmtTarget(row,row.max)}</span></td>
+      <td id="entry-${idx}"></td>
+      <td id="tier-${idx}"><span class="tag">-</span></td>
+      <td id="pts-${idx}">-</td>
+      <td id="pr-${idx}" class="pr">-</td>
+      <td id="log-${idx}"></td>
+    `;
+    TBL.appendChild(tr);
+
+    const inp=document.createElement("input");
+    inp.placeholder=row.unit==='sec'?"seconds or mm:ss":(row.unit==='xBW'?"e.g. 1.50":"value");
+    inp.style.width="130px"; inp.addEventListener("input",()=>updateRow(idx,inp.value));
+    $("#entry-"+idx).appendChild(inp);
+
+    const btn=document.createElement("button");
+    btn.textContent="Record Attempt"; btn.className="rowbtn"; btn.addEventListener("click",()=>logTrial(idx,inp.value));
+    $("#log-"+idx).appendChild(btn);
+
+    refreshPR(idx,row);
+  });
+
+  updateScoresSummary();
+  drawChart($("#chartExercise").value);
+}
+
+function updateRow(idx,raw){
+  const row=modelData.rows[idx];
+  const val=row.unit==='sec'?parseTimeInput(raw):parseFloat(raw);
+  const {tier,pts}=tierAndPoints5(row.dir,val,row.prospect,row.std,row.strong,row.elite,row.max);
+  $("#tier-"+idx).innerHTML=`<span class="tag ${tierClass(tier)}">${tier}</span>`;
+  $("#pts-"+idx).textContent=isNaN(pts)?"-":pts;
+  updateScoresSummary();
+}
+
+/* ---------------- Scores & HUD ---------------- */
+function setRing(elId, score){ const el=$(elId); const pct=isNaN(score)?0:Math.max(0,Math.min(100,score)); el.style.setProperty("--pct", pct.toString()); }
+function updateScoresSummary(){
+  let ptsSum=0,cnt=0,pftSum=0,pftCnt=0,cftSum=0,cftCnt=0;
+  modelData.rows.forEach((row,idx)=>{
+    const ptsTxt=$("#pts-"+idx).textContent; const pts=parseInt(ptsTxt,10);
+    if(!isNaN(pts)){ ptsSum+=pts; cnt++; }
+    if(["Pull-ups (strict, dead-hang)","Push-ups (strict, nonstop)","Plank Hold","3-Mile (anchor)"].includes(row.name) && !isNaN(pts)){ pftSum+=pts; pftCnt++; }
+    if(["800 m Run","Ammo Can Press (30 lb, 2 min)","Farmer’s Carry (2×50 lb DBs)"].includes(row.name) && !isNaN(pts)){ cftSum+=pts; cftCnt++; }
+  });
+  const overall = cnt? Math.round(ptsSum/cnt):NaN;
+  const pft     = pftCnt? Math.round(pftSum/pftCnt):NaN;
+  const cft     = cftCnt? Math.round(cftSum/cftCnt):NaN;
+
+  $("#overall").textContent = isNaN(overall)?"-":overall;
+  $("#pft").textContent     = isNaN(pft)?"-":pft;
+  $("#cft").textContent     = isNaN(cft)?"-":cft;
+
+  setRing("#ringOverall", overall||0);
+  setRing("#ringPFT", pft||0);
+  setRing("#ringCFT", cft||0);
+}
+
+/* ---------------- Logging & PRs ---------------- */
+function currentProfile(){ return { sex:$("#sex").value, age:$("#age").value, unit:$("#unitGlobal").value }; }
+function logTrial(idx,raw){
+  const row=modelData.rows[idx]; const key=exerciseKey(row);
+  const val=row.unit==='sec'?parseTimeInput(raw):parseFloat(raw);
+  if(isNaN(val)){ alert("Enter a valid number (or mm:ss for times) before logging."); return; }
+  const {tier,pts}=tierAndPoints5(row.dir,val,row.prospect,row.std,row.strong,row.elite,row.max);
+  const entry={date:todayISO(), exercise:key, label:`${row.cat} — ${row.name}`, value:val, unit:row.unit, dir:row.dir, tier, pts, profile:currentProfile()};
+  state.logs.push(entry); state.logs=dedupeLogs(state.logs); saveUserData(activeUID(), state);
+  refreshPR(idx,row); drawChart($("#chartExercise").value);
+}
+function refreshPR(idx,row){
+  const key=exerciseKey(row); const logs=(state.logs||[]).filter(l=>l.exercise===key);
+  if(!logs.length){ $("#pr-"+idx).textContent="-"; return; }
+  let best=logs[0]; for(const l of logs){ if(row.dir==='higher'){ if(l.value>best.value) best=l; } else { if(l.value<best.value) best=l; } }
+  const disp=row.unit==='sec'?fmtSecs(best.value):(row.unit==='xBW'?best.value.toFixed(2):String(best.value));
+  $("#pr-"+idx).textContent = `${disp} on ${best.date}`;
+}
+
+/* ---------------- Import/Export ---------------- */
+$("#exportBtn").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download="mcfit-logs.json"; a.click(); URL.revokeObjectURL(url);
+});
+$("#importFile").addEventListener("change", async (e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{ const text=await f.text(); const data=JSON.parse(text); if(!data.logs){alert("Invalid file.");return}
+    state=data; saveUserData(activeUID(), state); hydrateInputsFromState(); renderTable();
+  }catch{ alert("Failed to import.") }
+});
+
+/* ---------------- Chart ---------------- */
+let CHART;
+$("#chartExercise").addEventListener("change", e=> drawChart(e.target.value));
+$("#clearExercise").addEventListener("click", ()=>{
+  const exKey=$("#chartExercise").value; if(!exKey) return;
+  state.logs=(state.logs||[]).filter(l=>l.exercise!==exKey); saveUserData(activeUID(), state);
+  drawChart(exKey);
+  modelData.rows.forEach((row,idx)=>{ if(exerciseKey(row)===exKey) refreshPR(idx,row); });
+});
+function drawChart(exKey){
+  const canvas=$("#chart"), ctx=canvas.getContext("2d");
+  const row=modelData.rows.find(r=>exerciseKey(r)===exKey) || modelData.rows[0];
+  if(!row) return;
+  $("#chartUnit").value=row.unit;
+
+  const logs=(state.logs||[]).filter(l=>l.exercise===exKey).sort((a,b)=>a.date.localeCompare(b.date));
+  const labels=logs.map(l=>l.date);
+  const values=logs.map(l=> l.unit==='sec'? l.value/60 : l.value);
+
+  const targ=v => row.unit==='sec'? v/60 : v;
+  if(CHART) CHART.destroy();
+  CHART=new Chart(ctx,{
+    type:"line",
+    data:{
+      labels,
+      datasets:[
+        {label:"Your Result", data:values, borderWidth:2, tension:.2},
+        {label:"Prospect", data:labels.map(_=>targ(row.prospect)), borderDash:[6,6]},
+        {label:"Standard", data:labels.map(_=>targ(row.std)), borderDash:[6,6]},
+        {label:"Strong", data:labels.map(_=>targ(row.strong)), borderDash:[6,6]},
+        {label:"Elite", data:labels.map(_=>targ(row.elite)), borderDash:[6,6]},
+        {label:"Max", data:labels.map(_=>targ(row.max)), borderDash:[6,6]},
+      ]
+    },
+    options:{
+      responsive:true,
+      scales:{ y:{ title:{display:true,text: row.unit==='sec'?"Minutes":(row.unit==='xBW'?"x Bodyweight":row.unit)} }, x:{ title:{display:true,text:"Date"} } },
+      plugins:{ legend:{ position:"bottom" }, tooltip:{ mode:"index", intersect:false } }
+    }
+  });
+}
+
+/* ---------------- Global unit toggle (convert fields only) ---------------- */
+function setGlobalUnit(unit){
+  const prev=$("#unitGlobal").value; if(prev===unit) return;
+  const bwVal=parseFloat($("#bw").value||''); if(!isNaN(bwVal)){ $("#bw").value = (unit==='kg' ? lbToKg(bwVal) : kgToLb(bwVal)).toFixed(1) }
+  const dbVal=parseFloat($("#db").value||''); if(!isNaN(dbVal)){ $("#db").value = Math.round(unit==='kg' ? lbToKg(dbVal) : kgToLb(dbVal)) }
+  $("#bwUnit").value=unit; $("#dbUnit").value=unit; $("#unitGlobal").value=unit; persistProfile(); renderTable();
+}
+
+/* ---------------- Auth (simple local) ---------------- */
+async function sha256(text){ const enc=new TextEncoder().encode(text); const buf=await crypto.subtle.digest("SHA-256",enc); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("") }
+const authModal=$("#authModal"), authTitle=$("#authTitle"), nameRow=$("#nameRow"), authName=$("#authName"), authEmail=$("#authEmail"), authPass=$("#authPass"), authError=$("#authError");
+const authStatus=$("#authStatus"), btnCreate=$("#btnCreate"), btnSignIn=$("#btnSignIn"), btnSignOut=$("#btnSignOut"), btnCancel=$("#authCancel"), btnSubmit=$("#authSubmit");
+function openAuth(m){ authTitle.textContent=m==="create"?"Create account":"Sign in"; nameRow.style.display=m==="create"?"block":"none"; authName.value="";authEmail.value="";authPass.value="";authError.textContent=""; authModal.style.display="flex" }
+function closeAuth(){ authModal.style.display="none" }
+btnCreate.addEventListener("click",()=>openAuth("create"));
+btnSignIn.addEventListener("click",()=>openAuth("signin"));
+btnSignOut.addEventListener("click",()=>{ setSession(null); authStatus.textContent="Not signed in"; btnSignOut.style.display="none"; btnSignIn.style.display=""; btnCreate.style.display=""; state=loadUserData(null); renderTable(); });
+btnCancel.addEventListener("click",closeAuth);
+btnSubmit.addEventListener("click", async ()=>{
+  const email=authEmail.value.trim().toLowerCase(), pass=authPass.value;
+  if(!email||!pass){ authError.textContent="Email and password are required."; return; }
+  const users=loadUsers();
+  if(nameRow.style.display!=="none"){ // create
+    const name=authName.value.trim(); if(!name){ authError.textContent="Name is required."; return; }
+    if(users[email]){ authError.textContent="Account already exists."; return; }
+    const passHash=await sha256(pass); const uid="u_"+Math.random().toString(36).slice(2,10);
+    users[email]={uid,name,email,passHash}; saveUsers(users); setSession({uid,email,name});
+    // migrate guest
+    const guest=loadUserData(null), existing=loadUserData(uid);
+    saveUserData(uid, { profile:{...existing.profile,...guest.profile}, logs: dedupeLogs([...(existing.logs||[]), ...(guest.logs||[])]) });
+    localStorage.removeItem(dataKeyFor(null));
+    authStatus.textContent=`Signed in as ${name}`; btnSignOut.style.display=""; btnSignIn.style.display="none"; btnCreate.style.display="none"; closeAuth();
+    state=loadUserData(uid); renderTable();
+  } else { // sign in
+    const user=users[email]; if(!user){ authError.textContent="No account for this email."; return; }
+    const passHash=await sha256(pass); if(passHash!==user.passHash){ authError.textContent="Incorrect password."; return; }
+    setSession({uid:user.uid,email:user.email,name:user.name});
+    const guest=loadUserData(null), existing=loadUserData(user.uid);
+    saveUserData(user.uid, { profile:{...existing.profile,...guest.profile}, logs: dedupeLogs([...(existing.logs||[]), ...(guest.logs||[])]) });
+    localStorage.removeItem(dataKeyFor(null));
+    authStatus.textContent=`Signed in as ${user.name}`; btnSignOut.style.display=""; btnSignIn.style.display="none"; btnCreate.style.display="none"; closeAuth();
+    state=loadUserData(user.uid); renderTable();
+  }
+});
+(function initAuthUI(){ const s=getSession(); if(s){ authStatus.textContent=`Signed in as ${s.name}`; btnSignOut.style.display=""; btnSignIn.style.display="none"; btnCreate.style.display="none"; } })();
+
+/* ---------------- Profile persistence ---------------- */
+function hydrateInputsFromState(){
+  const s=state.profile||{};
+  $("#sex").value=s.sex||"male"; $("#age").value=s.age||"31-35"; $("#unitGlobal").value=s.unit||"lb";
+  $("#bw").value=s.bw||""; $("#bwUnit").value=s.bwUnit||($("#unitGlobal").value);
+  $("#db").value=s.db||""; $("#dbUnit").value=s.dbUnit||($("#unitGlobal").value);
+}
+function persistProfile(){
+  state.profile={ sex:$("#sex").value, age:$("#age").value, unit:$("#unitGlobal").value, bw:$("#bw").value||"", bwUnit:$("#bwUnit").value, db:$("#db").value||"", dbUnit:$("#dbUnit").value };
+  saveUserData(activeUID(), state);
+}
+$("#calcBtn").addEventListener("click",()=>{ persistProfile(); renderTable(); });
+["sex","age","bw","bwUnit","db","dbUnit"].forEach(id=> $("#"+id).addEventListener("change", persistProfile));
+$("#unitGlobal").addEventListener("change", e=> setGlobalUnit(e.target.value));
+$("#chartExercise").addEventListener("change", e=> drawChart(e.target.value));
+
+/* ---------------- Test Day: batch log + summary ---------------- */
+const testModal=$("#testModal"), testClose=$("#testClose"), btnTestDay=$("#btnTestDay"), testTbody=$("#testTbody"), testStats=$("#testStats"), btnCopyLink=$("#btnCopyLink"), btnPrint=$("#btnPrint");
+let TEST_CHART;
+
+btnTestDay.addEventListener("click", ()=>{
+  const date=todayISO();
+  const results=[];
+  modelData.rows.forEach((row,idx)=>{
+    const raw = $("#entry-"+idx).querySelector("input")?.value;
+    const val = row.unit==='sec'? parseTimeInput(raw) : parseFloat(raw);
+    if(!isNaN(val)){
+      const {tier,pts}=tierAndPoints5(row.dir,val,row.prospect,row.std,row.strong,row.elite,row.max);
+      const entry={date,exercise:exerciseKey(row),label:`${row.cat} — ${row.name}`, value:val, unit:row.unit, dir:row.dir, tier, pts};
+      state.logs.push(entry); results.push(entry);
+    }
+  });
+  if(!results.length){ alert("Enter some values first, then click Record Test Day."); return; }
+  state.logs=dedupeLogs(state.logs); saveUserData(activeUID(), state);
+  showTestDaySummary(date, results);
+  renderTable();
+});
+
+function showTestDaySummary(date, entries){
+  testTbody.innerHTML="";
+  let sum=0; entries.forEach(e=>{
+    const tr=document.createElement("tr");
+    const disp = e.unit==='sec'? fmtSecs(e.value) : (e.unit==='xBW'? e.value.toFixed(2) : String(e.value));
+    tr.innerHTML=`<td style="border-bottom:1px solid var(--grid);padding:6px">${e.label}</td>
+                  <td style="border-bottom:1px solid var(--grid);padding:6px">${disp}</td>
+                  <td style="border-bottom:1px solid var(--grid);padding:6px">${e.tier}</td>
+                  <td style="border-bottom:1px solid var(--grid);padding:6px">${e.pts}</td>`;
+    testTbody.appendChild(tr);
+    sum+=e.pts;
+  });
+  const avg = Math.round(sum/entries.length);
+  testStats.innerHTML = `<div><b>Date:</b> ${date}</div><div><b>Attempts:</b> ${entries.length}</div><div><b>Average Points:</b> ${avg}</div>`;
+
+  const tiers = ["Prospect","Standard","Strong","Elite","Max"];
+  const counts = tiers.map(t=> entries.filter(e=>e.tier===t).length);
+  const ctx=$("#testChart").getContext("2d");
+  if(TEST_CHART) TEST_CHART.destroy();
+  TEST_CHART = new Chart(ctx,{
+    type:"radar",
+    data:{ labels:tiers, datasets:[{label:"Tier Distribution", data:counts, pointRadius:3, borderWidth:2, fill:true}] },
+    options:{ responsive:true, scales:{ r:{ beginAtZero:true, ticks:{stepSize:1} } }, plugins:{ legend:{ display:false } } }
+  });
+
+  const payload = { d:date, e: entries.map(({label,value,unit,tier,pts})=>({l:label,v:value,u:unit,t:tier,p:pts})) };
+  const hash = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  btnCopyLink.onclick = async ()=>{
+    const url = `${location.origin}${location.pathname}#${hash}`;
+    try{ await navigator.clipboard.writeText(url); btnCopyLink.textContent="Copied!"; setTimeout(()=>btnCopyLink.textContent="Copy Share Link",1500); }
+    catch{ alert(url); }
+  };
+  btnPrint.onclick = ()=> window.print();
+
+  testModal.style.display="flex";
+}
+document.getElementById("testClose").addEventListener("click", ()=> testModal.style.display="none");
+
+// If page opened with a hash, show the summary
+(function loadShared(){
+  if(location.hash.length>1){
+    try{
+      const json = decodeURIComponent(escape(atob(location.hash.slice(1))));
+      const payload = JSON.parse(json);
+      const entries = payload.e.map(x=>({label:x.l, value:x.v, unit:x.u, tier:x.t, pts:x.p}));
+      showTestDaySummary(payload.d || "Shared", entries);
+    }catch{}
+  }
+})();
+
+/* ---------------- Levels modal + first-run toast ---------------- */
+const levelsModal = document.getElementById("levelsModal");
+const levelsClose = document.getElementById("levelsClose");
+const btnLevels   = document.getElementById("btnLevels");
+function openLevels(){ levelsModal.style.display="flex"; }
+function closeLevels(){ levelsModal.style.display="none"; }
+if(btnLevels) btnLevels.addEventListener("click", openLevels);
+if(levelsClose) levelsClose.addEventListener("click", closeLevels);
+
+(function levelsFirstRun(){
+  const KEY="mcfit:levelsSeen";
+  if(localStorage.getItem(KEY)) return;
+  const toast=document.getElementById("levelsToast");
+  const link=document.getElementById("levelsOpenLink");
+  const dismiss=document.getElementById("levelsDismiss");
+  if(!toast) return;
+  toast.style.display="block";
+  link.addEventListener("click",(e)=>{ e.preventDefault(); openLevels(); toast.style.display="none"; localStorage.setItem(KEY,"1"); });
+  dismiss.addEventListener("click",()=>{ toast.style.display="none"; localStorage.setItem(KEY,"1"); });
+})();
+
+/* ---------------- Boot ---------------- */
+function hydrateInputsFromState(){
+  const s=state.profile||{};
+  $("#sex").value=s.sex||"male"; $("#age").value=s.age||"31-35"; $("#unitGlobal").value=s.unit||"lb";
+  $("#bw").value=s.bw||""; $("#bwUnit").value=s.bwUnit||($("#unitGlobal").value);
+  $("#db").value=s.db||""; $("#dbUnit").value=s.dbUnit||($("#unitGlobal").value);
+}
+function renderAll(){ hydrateInputsFromState(); renderTable(); }
+renderAll();
+</script>
+</body>
+</html>
